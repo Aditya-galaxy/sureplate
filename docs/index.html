@@ -124,7 +124,7 @@
   </div>
 
   <footer>
-    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · refreshes every 4s · sign-in only authorises <code>claim</code> ·
+    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · refreshes every 5s · sign-in only authorises <code>claim</code> ·
     <a href="https://github.com/Aditya-galaxy/sureplate" target="_blank" rel="noopener">source</a>
   </footer>
 </div>
@@ -134,7 +134,7 @@
 <script>
 const params = new URLSearchParams(location.search);
 const CONTRACT = params.get('contract') || 'sureplate.testnet';
-const RPCS = ['https://test.rpc.fastnear.com', 'https://rpc.testnet.fastnear.com'];
+const RPCS = ['https://test.rpc.fastnear.com', 'https://near-testnet.drpc.org', 'https://rpc.testnet.fastnear.com'];
 const EXPLORER = 'https://testnet.nearblocks.io';
 let token = params.get('token') || '';
 const SHOWCASE = 'CAM-S2-0001';   // seeded by scripts/seed.sh; used when no ?token= is given
@@ -302,7 +302,9 @@ function render(u) {
     </div>`;
 }
 
+let unitsAt = 0;
 async function loadUnits() {
+  if (token && Date.now() - unitsAt < 30000) return;   // the list changes rarely; keep RPC use low
   try {
     const total = Number(await view('nft_total_supply', {}));
     if (!total) { $('units').innerHTML = '<span class="empty">No passports minted yet.</span>'; return; }
@@ -312,6 +314,7 @@ async function loadUnits() {
       token = (CONTRACT === 'sureplate.testnet' && await view('get_unit', { token_id: SHOWCASE })) ? SHOWCASE : list[list.length - 1].token_id;
       $('q').value = token;
     }
+    unitsAt = Date.now();
     $('units').innerHTML = list.reverse().map(t =>
       `<a class="unit${t.token_id === token ? ' on' : ''}" href="?token=${encodeURIComponent(t.token_id)}${params.get('contract') ? '&contract=' + encodeURIComponent(CONTRACT) : ''}">${esc(t.token_id)}</a>`).join('');
   } catch (e) { /* the status line already reports rpc trouble */ }
@@ -351,7 +354,7 @@ $('f').addEventListener('submit', e => {
 });
 $('q').value = token;
 $('clink').textContent = CONTRACT; $('clink').href = `${EXPLORER}/address/${encodeURIComponent(CONTRACT)}`;
-initWallet().then(() => { tick(); setInterval(tick, 4000); });
+initWallet().then(() => { tick(); setInterval(tick, 5000); });
 </script>
 </body>
 </html>
