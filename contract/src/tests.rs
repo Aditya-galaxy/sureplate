@@ -18,7 +18,7 @@ fn near(n: u128) -> NearToken {
 /// Switch caller, clock (unix seconds) and attached deposit.
 fn at(who: &str, t: u64, deposit: NearToken) {
     testing_env!(VMContextBuilder::new()
-        .current_account_id(acc("patchbond.testnet"))
+        .current_account_id(acc("sureplate.testnet"))
         .predecessor_account_id(acc(who))
         .signer_account_id(acc(who))
         .block_timestamp(t * 1_000_000_000)
@@ -33,7 +33,7 @@ fn zero() -> NearToken {
 /// A line by `maker`, one unit `cam-1` owned by `alice` with a ~10 NEAR bond.
 fn setup() -> (Contract, NearToken) {
     at("maker", T0, zero());
-    let mut c = Contract::new(acc("patchbond.testnet"));
+    let mut c = Contract::new(acc("sureplate.testnet"));
     c.create_line("cam".into(), "Acme Cam".into(), acc("cert"), WINDOW, near(1));
     at("maker", T0, near(10));
     let bond = c.mint_unit("cam-1".into(), "cam".into(), acc("alice"), SBOM.into(), "1.0.0".into(), SUPPORT);

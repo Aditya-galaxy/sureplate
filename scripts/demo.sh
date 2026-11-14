@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the whole Patchbond lifecycle against a live contract (testnet by default):
+# Runs the whole Sureplate lifecycle against a live contract (testnet by default):
 #   mint a bonded passport → advisory patched in time → resale → advisory missed → owner collects
 #   → bogus advisory disputed and rejected → end of support → maker gets the rest back.
 #
@@ -13,12 +13,15 @@ MAKER="${MAKER:-acme-cam.testnet}"
 ALICE="${ALICE:-pb-alice.testnet}"
 BOB="${BOB:-pb-bob.testnet}"
 REPORTER="${REPORTER:-pb-reporter.testnet}"
-ARBITER="${ARBITER:-pb-cert.testnet}"
+# The arbiter is a Sputnik DAO: disputes are settled by a council vote, not by one account.
+ARBITER="${ARBITER:-sureplate-cert.sputnik-v2.testnet}"
+AUDITOR1="${AUDITOR1:-sp-auditor1.testnet}"     # two council members of that DAO
+AUDITOR2="${AUDITOR2:-sp-auditor2.testnet}"
 WINDOW="${WINDOW:-40}"          # patch window, seconds (real lines would use days)
 SUPPORT="${SUPPORT:-200}"       # support period, seconds from mint
 BOND="${BOND:-2 NEAR}"
 STAKE=100000000000000000000000  # 0.1 NEAR advisory stake
-PAGE="${PAGE:-https://aditya-galaxy.github.io/patchbond/}"
+PAGE="${PAGE:-https://aditya-galaxy.github.io/sureplate/}"
 
 RUN="${RUN:-$(date +%m%d%H%M%S)}"
 LINE="cam-s2-$RUN"
@@ -37,7 +40,7 @@ wait_until() { # unix seconds
   if (( left > 0 )); then dim "  …waiting ${left}s for $2"; sleep "$left"; fi
 }
 
-bold "Patchbond demo · contract $CONTRACT · line $LINE · unit $TOKEN"
+bold "Sureplate demo · contract $CONTRACT · line $LINE · unit $TOKEN"
 dim  "passport page: $PAGE?token=$TOKEN"
 
 step "1. Maker opens a product line: ${WINDOW}s patch window, 0.1 NEAR advisory stake, arbiter $ARBITER"
@@ -78,11 +81,23 @@ expect_fail "$BOB" claim '{"token_id":"'"$TOKEN"'","advisory_id":'"$B"'}'
 call "$REPORTER" reclaim_stake '{"advisory_id":'"$B"'}'
 show
 
-step "6. Advisory C is bogus. Maker disputes (pays a fee), the arbiter rejects it, the reporter's stake is slashed"
+step "6. Advisory C is bogus. Maker disputes (pays a fee). The arbiter DAO votes it down; the reporter's stake is slashed"
 C=$(view advisory_count '{}')
 call "$REPORTER" file_advisory '{"line_id":"'"$LINE"'","reference":"CVE-0000-0000 (not in this firmware)","component":"pkg:generic/log4j@2.14.0","severity":"Critical"}' "0.1 NEAR"
 call "$MAKER" dispute '{"advisory_id":'"$C"'}' "0.1 NEAR"
-call "$ARBITER" resolve_dispute '{"advisory_id":'"$C"',"upheld":false,"note":"log4j is not in the SBOM for 1.4.0"}'
+show
+RULING_JSON=$(printf '{"advisory_id":%s,"upheld":false,"note":"log4j is not in the SBOM for 1.4.0"}' "$C")
+if [[ "$ARBITER" == *.sputnik-v2.testnet ]]; then
+  RULING=$(printf '%s' "$RULING_JSON" | base64 | tr -d '\n')
+  PID=$(CONTRACT="$ARBITER" view get_last_proposal_id '{}')
+  dim "  A council member proposes the ruling on $ARBITER (proposal #$PID); two of three members vote:"
+  CONTRACT="$ARBITER" call "$AUDITOR1" add_proposal '{"proposal":{"description":"Reject advisory '"$C"': component not in SBOM","kind":{"FunctionCall":{"receiver_id":"'"$CONTRACT"'","actions":[{"method_name":"resolve_dispute","args":"'"$RULING"'","deposit":"0","gas":"50000000000000"}]}}}}' "1 NEAR"
+  CONTRACT="$ARBITER" GAS=200 call "$AUDITOR1" act_proposal '{"id":'"$PID"',"action":"VoteApprove"}'
+  CONTRACT="$ARBITER" GAS=200 call "$AUDITOR2" act_proposal '{"id":'"$PID"',"action":"VoteApprove"}'
+else
+  # Plain-account arbiter (what scripts/setup-accounts.sh gives you): it rules directly.
+  call "$ARBITER" resolve_dispute "$RULING_JSON"
+fi
 show
 
 step "7. Support period ends. Maker takes back what is left of the bond"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Shared helpers for the Patchbond scripts. Source this file.
+# Shared helpers for the Sureplate scripts. Source this file.
 # Needs: near-cli-rs (`near`), curl, jq, python3. Keys are read from ~/.near-credentials (legacy keychain).
 
-CONTRACT="${CONTRACT:-patchbond.testnet}"
+CONTRACT="${CONTRACT:-sureplate.testnet}"
 RPC="${RPC:-https://test.rpc.fastnear.com}"
 EXPLORER="${EXPLORER:-https://testnet.nearblocks.io}"
 
@@ -43,11 +43,12 @@ balance() {
 near_amount() { python3 -c 'import sys; print("%.4f" % (int(sys.argv[1])/1e24))' "$1"; }
 
 # call <signer> <method> <json-args> [deposit, e.g. "2 NEAR"]
+# Targets $CONTRACT; prefix with CONTRACT=other.testnet and/or GAS=200 to override for one call.
 # Prints one line with the transaction link. Exits non-zero if the transaction failed.
 call() {
   local signer="$1" method="$2" args="$3" deposit="${4:-0 NEAR}" out tx
   if ! out=$(near contract call-function as-transaction "$CONTRACT" "$method" json-args "$args" \
-        prepaid-gas '60 Tgas' attached-deposit "$deposit" sign-as "$signer" \
+        prepaid-gas "${GAS:-60} Tgas" attached-deposit "$deposit" sign-as "$signer" \
         network-config testnet sign-with-legacy-keychain send 2>&1); then
     printf '\033[31m✗ %s.%s failed\033[0m\n%s\n' "$signer" "$method" "$(printf '%s' "$out" | sed 's/\x1b\[[0-9;]*m//g' | grep -i -E 'panicked|error|failed' | head -5)" >&2
     return 1

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patchbond · device passport</title>
+<title>Sureplate · device passport</title>
 <meta name="description" content="A device passport NFT on NEAR that holds the maker's security-update bond.">
 <style>
   :root {
@@ -72,6 +72,18 @@
   .unit.on { border-color: var(--text); }
   .how { color: var(--muted); font-size: 13px; }
   .how ol { margin: 6px 0 0; padding-left: 20px; } .how li { margin: 3px 0; }
+  .me { font: 12px var(--mono); color: var(--muted); display: flex; align-items: center; gap: 10px; }
+  .me b { color: var(--text); font-weight: 600; }
+  .me .bal { color: var(--text); padding: 3px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: background .3s, color .3s; }
+  .me .bal.up { background: rgba(61,220,151,.25); color: var(--ok); border-color: var(--ok); }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); padding: 7px 12px; font: 600 12px inherit; }
+  .btn-ghost:hover { border-color: var(--text); }
+  .collect { grid-column: 1 / -1; justify-self: start; background: var(--ok); color: #062014; padding: 11px 18px; font-size: 15px; margin-top: 4px; }
+  .collect:disabled { opacity: .6; cursor: progress; }
+  details { grid-column: 1 / -1; color: var(--muted); font-size: 12px; } summary { cursor: pointer; }
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #10261c; border: 1px solid var(--ok); color: var(--text);
+    padding: 12px 18px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.5); z-index: 5; max-width: calc(100vw - 32px); }
+  .toast.err { background: #2a1414; border-color: var(--bad); }
   footer { color: var(--faint); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -80,10 +92,11 @@
   <header>
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
-      Patchbond
+      Sureplate
     </div>
     <div class="tag">the security-update warranty that lives inside the device's NFT</div>
     <div class="spacer"></div>
+    <div class="me" id="me"></div>
     <div class="live"><span class="dot" id="dot"></span><span id="live">connecting…</span></div>
   </header>
 
@@ -111,14 +124,16 @@
   </div>
 
   <footer>
-    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · read-only page, refreshes every 4s ·
-    <a href="https://github.com/Aditya-galaxy/patchbond" target="_blank" rel="noopener">source</a>
+    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · refreshes every 4s · sign-in only authorises <code>claim</code> ·
+    <a href="https://github.com/Aditya-galaxy/sureplate" target="_blank" rel="noopener">source</a>
   </footer>
 </div>
 
+<div id="toast" class="toast" hidden></div>
+<script src="vendor/near-api-js-4.0.4.min.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
-const CONTRACT = params.get('contract') || 'patchbond.testnet';
+const CONTRACT = params.get('contract') || 'sureplate.testnet';
 const RPCS = ['https://test.rpc.fastnear.com', 'https://rpc.testnet.fastnear.com'];
 const EXPLORER = 'https://testnet.nearblocks.io';
 let token = params.get('token') || '';
@@ -153,6 +168,57 @@ async function view(method, args) {
   throw lastErr;
 }
 
+// ── wallet: sign-in grants this page a function-call key limited to `claim` on this contract ──
+let wallet = null, me = null, myBal = null;
+async function initWallet() {
+  try {
+    const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
+    const conn = await nearApi.connect({ networkId: 'testnet', nodeUrl: RPCS[0], walletUrl: 'https://testnet.mynearwallet.com', keyStore });
+    wallet = new nearApi.WalletConnection(conn, 'sureplate');
+    me = wallet.isSignedIn() ? wallet.getAccountId() : null;
+  } catch (e) { wallet = null; }
+  renderMe();
+}
+function renderMe() {
+  if (!wallet) { $('me').innerHTML = ''; return; }
+  $('me').innerHTML = me
+    ? `<b>${esc(me)}</b><span class="bal" id="bal">${myBal === null ? '…' : myBal.toFixed(4) + ' NEAR'}</span><button class="btn-ghost" id="signout">Sign out</button>`
+    : `<button class="btn-ghost" id="signin">Sign in with NEAR wallet</button>`;
+}
+async function refreshBalance() {
+  if (!me) return;
+  const r = await fetch(RPCS[rpcIdx], { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'query',
+    params: { request_type: 'view_account', finality: 'optimistic', account_id: me } }) });
+  const j = await r.json(); if (!j.result) return;
+  const b = Number(BigInt(j.result.amount) / 10n**20n) / 1e4;
+  const rose = myBal !== null && b > myBal + 0.001;
+  myBal = b; const el = $('bal'); if (!el) return;
+  el.textContent = b.toFixed(4) + ' NEAR';
+  if (rose) { el.classList.add('up'); setTimeout(() => el.classList.remove('up'), 6000); }
+}
+function toast(html, bad) {
+  const t = $('toast'); t.innerHTML = html; t.className = 'toast' + (bad ? ' err' : ''); t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 9000);
+}
+document.addEventListener('click', async e => {
+  if (e.target.id === 'signin') {
+    wallet.requestSignIn({ contractId: CONTRACT, methodNames: ['claim'], successUrl: location.href, failureUrl: location.href });
+  } else if (e.target.id === 'signout') {
+    wallet.signOut(); me = null; myBal = null; lastView = null; renderMe(); tick();
+  } else if (e.target.dataset.claim !== undefined) {
+    const btn = e.target; btn.disabled = true; btn.textContent = 'Collecting…';
+    try {
+      const out = await wallet.account().functionCall({ contractId: CONTRACT, methodName: 'claim',
+        args: { token_id: token, advisory_id: Number(btn.dataset.claim) }, gas: 30000000000000n, attachedDeposit: 0n });
+      const hash = out?.transaction?.hash || out?.transaction_outcome?.id || '';
+      toast(`Collected <b>${esc(btn.dataset.amount)} NEAR</b> from the maker's bond. <a href="${EXPLORER}/txns/${encodeURIComponent(hash)}" target="_blank" rel="noopener">View transaction</a>`);
+    } catch (err) {
+      toast('Collect failed: ' + esc(String(err?.kind?.ExecutionError || err?.message || err).slice(0, 180)), true);
+    }
+    lastView = null; await tick();
+  }
+});
+
 const VERDICT = {
   covered: 'Under support. No advisory is waiting on the maker, and the bond is locked in this passport.',
   advisory_open: 'An advisory is open. The maker is on the clock; if the deadline passes unpatched, the owner collects.',
@@ -174,8 +240,14 @@ function advHtml(u, a) {
     note = `<div class="note">Fixed in firmware <b>${esc(v.fix_firmware)}</b> · sha256 ${esc((v.fix_sha256 || '').slice(0, 16))}… · ${when(v.resolved_at)}</div>`;
   } else if (a.state === 'breach_claimable') {
     const late = v.status === 'PatchedLate' ? `Fix ${esc(v.fix_firmware)} arrived after the deadline. ` : `Deadline passed ${dur(now - v.deadline)} ago with no fix. `;
-    note = `<div class="note">${late}Owner can collect <b>${near(a.claimable)} NEAR</b>:</div>` +
-      `<pre>near contract call-function as-transaction ${esc(CONTRACT)} claim json-args '{"token_id":"${esc(u.token_id)}","advisory_id":${v.id}}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' sign-as ${esc(u.owner_id)} network-config testnet sign-with-legacy-keychain send</pre>`;
+    const cli = `<pre>near contract call-function as-transaction ${esc(CONTRACT)} claim json-args '{"token_id":"${esc(u.token_id)}","advisory_id":${v.id}}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' sign-as ${esc(u.owner_id)} network-config testnet sign-with-legacy-keychain send</pre>`;
+    if (me === u.owner_id) {
+      note = `<div class="note">${late}You own this device, so the bond owes you <b>${near(a.claimable)} NEAR</b>.</div>` +
+        `<button class="collect" data-claim="${v.id}" data-amount="${near(a.claimable)}">Collect ${near(a.claimable)} NEAR</button>`;
+    } else {
+      note = `<div class="note">${late}Owner can collect <b>${near(a.claimable)} NEAR</b>. ${me ? `You are signed in as ${esc(me)}; only the current owner can collect.` : 'Sign in as the owner to collect with one click.'}</div>` +
+        `<details><summary>or from the command line</summary>${cli}</details>`;
+    }
   } else if (a.state === 'breach_claimed') {
     note = `<div class="note">Deadline missed. The owner was paid out of the bond for this one.</div>`;
   } else if (a.state === 'rejected') {
@@ -237,7 +309,7 @@ async function loadUnits() {
     const from = Math.max(0, total - 12);
     const list = await view('nft_tokens', { from_index: String(from), limit: 12 });
     if (!token && list.length) {
-      token = (CONTRACT === 'patchbond.testnet' && await view('get_unit', { token_id: SHOWCASE })) ? SHOWCASE : list[list.length - 1].token_id;
+      token = (CONTRACT === 'sureplate.testnet' && await view('get_unit', { token_id: SHOWCASE })) ? SHOWCASE : list[list.length - 1].token_id;
       $('q').value = token;
     }
     $('units').innerHTML = list.reverse().map(t =>
@@ -253,10 +325,11 @@ async function tick() {
       if (!u) { $('out').innerHTML = `<div class="card empty">No passport with id “${esc(token)}” on ${esc(CONTRACT)}.</div>`; lastView = null; }
       else {
         skew = u.now - Date.now() / 1000;      // follow chain time, not the laptop clock
-        const sig = JSON.stringify({ ...u, now: 0 });
+        const sig = JSON.stringify({ ...u, now: 0, me });
         if (sig !== lastView) { render(u); lastView = sig; }
       }
     } else { $('out').innerHTML = '<div class="card empty">No passports minted yet. Run <code>scripts/demo.sh</code>.</div>'; }
+    refreshBalance().catch(() => {});
     $('dot').className = 'dot'; $('live').textContent = 'live · ' + new Date().toLocaleTimeString();
   } catch (e) {
     $('dot').className = 'dot err'; $('live').textContent = 'rpc error, retrying';
@@ -278,7 +351,7 @@ $('f').addEventListener('submit', e => {
 });
 $('q').value = token;
 $('clink').textContent = CONTRACT; $('clink').href = `${EXPLORER}/address/${encodeURIComponent(CONTRACT)}`;
-tick(); setInterval(tick, 4000);
+initWallet().then(() => { tick(); setInterval(tick, 4000); });
 </script>
 </body>
 </html>

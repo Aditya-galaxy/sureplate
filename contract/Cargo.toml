@@ -1,10 +1,10 @@
 [package]
-name = "patchbond"
+name = "sureplate"
 description = "Device passport NFT that escrows the maker's security-update bond"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/Aditya-galaxy/patchbond"
+repository = "https://github.com/Aditya-galaxy/sureplate"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -1,12 +1,13 @@
-# Patchbond
+# Sureplate
 
 **A device passport NFT that holds the maker's security-update bond.**
 
 Built at NEAR HACKATHON (Nov 2026). Tracks: **NFTs That Do Something**, **Real-World Money**.
 
-- Live contract (testnet): [`patchbond.testnet`](https://testnet.nearblocks.io/address/patchbond.testnet)
-- Live passport page: https://aditya-galaxy.github.io/patchbond/
-- One command runs the whole lifecycle on testnet: `scripts/demo.sh`
+- Live contract (testnet): [`sureplate.testnet`](https://testnet.nearblocks.io/address/sureplate.testnet)
+- Live passport page: https://aditya-galaxy.github.io/sureplate/
+- The owner collects with one click in the browser; one command runs the whole lifecycle on testnet: `scripts/demo.sh`
+- Disputes are settled by a Sputnik DAO council vote: [`sureplate-cert.sputnik-v2.testnet`](https://testnet.nearblocks.io/address/sureplate-cert.sputnik-v2.testnet)
 
 ## The problem
 
@@ -17,7 +18,7 @@ Regulation (the EU Cyber Resilience Act) now makes security updates a legal duty
 enforcement is a regulator's job and takes years. The person holding the vulnerable
 device gets nothing.
 
-## What Patchbond does
+## What Sureplate does
 
 The maker puts money behind the promise, per unit, and the unit's NFT holds it.
 
@@ -35,7 +36,8 @@ The maker puts money behind the promise, per unit, and the unit's NFT holds it.
 4. **Dispute.** If the advisory is bogus, the maker can dispute it once, paying a fee equal
    to the reporter's stake. The clock pauses. The line's arbiter rules: upheld → fee goes
    to the reporter and the clock restarts with a full window; rejected → reporter's stake
-   goes to the maker.
+   goes to the maker. In the demo the arbiter is a Sputnik DAO, so the ruling is a
+   `FunctionCall` proposal that executes `resolve_dispute` when two of three council members approve.
 5. **Resale.** `nft_transfer` moves the passport. The bond and the right to collect move
    with it; the seller can no longer claim.
 6. **End of support.** The maker calls `release`. Anything the owner was still owed is paid
@@ -48,7 +50,13 @@ The maker puts money behind the promise, per unit, and the unit's NFT holds it.
   right now", so a standard NEP-171 transfer is all a resale needs. No registry to update.
 - **Live status in a standard field.** `nft_token` injects the current status and remaining
   bond into `metadata.extra`, so any NEP-171 wallet or marketplace can show whether the
-  device is covered without knowing about Patchbond.
+  device is covered without knowing about Sureplate.
+- **Function-call access keys make collecting one click.** Signing in on the page asks the
+  wallet for a key that can call only `claim` on this contract, with zero deposit. After that
+  the owner clicks Collect and the page signs the transaction itself: no popup, and the key
+  cannot move the NFT or spend the account's NEAR beyond gas.
+- **SputnikDAO as arbiter.** The arbiter is just an account id, so a DAO fits without any
+  contract change: its proposal calls `resolve_dispute` on approval.
 - **Named accounts** make the parties legible: a buyer sees `acme-cam.testnet` as maker and
   `pb-cert.testnet` as arbiter, not two hex strings.
 - **Storage staking** makes the per-unit cost explicit: the contract measures the bytes each
@@ -60,19 +68,19 @@ The maker puts money behind the promise, per unit, and the unit's NFT holds it.
 
 ### 1. Look, no setup (30 seconds)
 
-Open https://aditya-galaxy.github.io/patchbond/ . It reads the testnet contract directly
+Open https://aditya-galaxy.github.io/sureplate/ . It reads the testnet contract directly
 over RPC. Three seeded passports show three different states:
 
 | Open this | You see |
 | --- | --- |
-| [`CAM-S2-0001`](https://aditya-galaxy.github.io/patchbond/?token=CAM-S2-0001) | Status **BREACH CLAIMABLE**. A critical advisory missed its deadline; the page shows the owner can collect 0.995 NEAR and the exact command. |
-| [`CAM-S2-0002`](https://aditya-galaxy.github.io/patchbond/?token=CAM-S2-0002) | Same advisory, but this owner already collected: bond bar at 50%, advisory marked **OWNER PAID**. |
-| [`BELL-0001`](https://aditya-galaxy.github.io/patchbond/?token=BELL-0001) | Status **ADVISORY OPEN** on a line with a 7-day patch window; a live countdown to the maker's deadline. |
+| [`CAM-S2-0001`](https://aditya-galaxy.github.io/sureplate/?token=CAM-S2-0001) | Status **BREACH CLAIMABLE**. A critical advisory missed its deadline; the page shows the owner can collect 0.995 NEAR and the exact command. |
+| [`CAM-S2-0002`](https://aditya-galaxy.github.io/sureplate/?token=CAM-S2-0002) | Same advisory, but this owner already collected: bond bar at 50%, advisory marked **OWNER PAID**. |
+| [`BELL-0001`](https://aditya-galaxy.github.io/sureplate/?token=BELL-0001) | Status **ADVISORY OPEN** on a line with a 7-day patch window; a live countdown to the maker's deadline. |
 
 Or query the contract yourself:
 
 ```sh
-curl -s https://test.rpc.fastnear.com -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"patchbond.testnet","method_name":"get_unit","args_base64":"eyJ0b2tlbl9pZCI6IkNBTS1TMi0wMDAxIn0="}}' \
+curl -s https://test.rpc.fastnear.com -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sureplate.testnet","method_name":"get_unit","args_base64":"eyJ0b2tlbl9pZCI6IkNBTS1TMi0wMDAxIn0="}}' \
   | python3 -c 'import sys,json; print(bytes(json.load(sys.stdin)["result"]["result"]).decode())'
 ```
 
@@ -92,7 +100,7 @@ blocked while an advisory is pending, release settles the owner first.
 ### 3. Run the whole lifecycle on testnet (about 4 minutes)
 
 Needs [`near-cli-rs`](https://github.com/near/near-cli-rs), `curl`, `jq`, `python3`.
-You do not need to deploy anything: `patchbond.testnet` is public and anyone may open a
+You do not need to deploy anything: `sureplate.testnet` is public and anyone may open a
 product line on it.
 
 ```sh
@@ -110,16 +118,38 @@ The script prints a transaction link for every step. What you see, in order:
 | 3 | Advisory A filed, maker patches in time | `#N CVE-2022-0778 [High] → patched`, bond untouched |
 | 4 | Alice transfers the NFT to Bob | owner becomes Bob |
 | 5 | Advisory B (critical) filed, maker does nothing | Bob's early claim is **refused**; after 40s status is `breach_claimable`; Alice's claim is **refused**; Bob's claim pays and his balance rises by about 0.995 NEAR; a second claim is **refused** |
-| 6 | Advisory C is bogus; maker disputes, arbiter rejects | `→ rejected`, bond untouched |
+| 6 | Advisory C is bogus; maker disputes; a council member proposes the ruling on the DAO and two members approve | `→ disputed`, then after the second vote `→ rejected`; bond untouched |
 | 7 | Support period ends, maker releases | early release is **refused**; then maker's balance rises by the remaining 0.995 NEAR; status `released` |
 
 Open the passport URL the script prints at the start to watch the same unit change state live.
+
+With your own accounts from `setup-accounts.sh` the arbiter is a plain account and rules
+directly (you are not on the demo DAO's council). The default accounts use the DAO path;
+the three DAO transactions of the last full run are
+[proposal](https://testnet.nearblocks.io/txns/DZcZP95NtoMvdVX91BRn1a3qyqz2g7wkzZXqNKyqaXHU),
+[vote 1](https://testnet.nearblocks.io/txns/ExUT7JYrR1ncKB2Vqn8h4im6xDH576pTr9qJ4x7Rj4g),
+[vote 2, which executed the ruling](https://testnet.nearblocks.io/txns/7DPbcjcE4bfzterb91maRh92FzbmNgGrTmyzjFinxWKm).
+
+### 3b. Click Collect yourself (3 minutes)
+
+You need a testnet wallet account (for example at https://testnet.mynearwallet.com) and the
+accounts from `setup-accounts.sh`:
+
+```sh
+MAKER=yourprefix-maker.testnet REPORTER=yourprefix-reporter.testnet ARBITER=yourprefix-cert.testnet \
+  scripts/breach-for.sh your-wallet.testnet
+```
+
+It mints a bonded passport to your wallet account, files a critical advisory with a 30-second
+window and prints a URL. Open it after the window, press **Sign in with NEAR wallet**, approve
+the `claim`-only key, then press **Collect**. You see a green toast with the transaction link,
+your balance at the top right rise by about 0.995 NEAR, and the bond bar drop to half.
 
 Run it against your own deployment with `CONTRACT=your.testnet scripts/demo.sh` after:
 
 ```sh
 cd contract && cargo near build non-reproducible-wasm
-near contract deploy your.testnet use-file target/near/patchbond.wasm with-init-call new \
+near contract deploy your.testnet use-file target/near/sureplate.wasm with-init-call new \
   json-args '{"owner_id":"your.testnet"}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' \
   network-config testnet sign-with-legacy-keychain send
 ```
@@ -159,16 +189,19 @@ under support (after mint, before `support_until`).
 ## Limits, stated plainly
 
 - **Testnet only.** Nothing is deployed to mainnet. Amounts in the demo are faucet NEAR.
-- **The arbiter is a trusted account** chosen by the maker when the line is opened and shown
-  on every passport. It only matters when the maker disputes; an undisputed advisory needs
-  no one's judgement. Pointing it at a Sputnik DAO is the intended production setup; that is
-  not built here.
+- **The arbiter is whoever the maker names** when the line is opened, shown on every passport.
+  It only matters when the maker disputes; an undisputed advisory needs no one's judgement.
+  The demo uses a three-member Sputnik DAO whose council is three demo accounts. Who should
+  sit on a real one (a CERT, auditors, insurers) is an open question. Replacing the vote with
+  an attested check of the public vulnerability record against the SBOM is the next step; not built.
 - **Advisories are line-wide.** The contract does not check on-chain that the named component
   is in a unit's SBOM (only the SBOM hash is on-chain). A wrong advisory is what the dispute
   path is for.
 - **The bond is accounted per token inside one contract**, not held in a separate account per NFT.
 - **Bond is in NEAR**, so its fiat value moves. A stablecoin (NEP-141) bond is the obvious next step.
-- **The page is read-only.** Writes go through `near-cli-rs`; there is no wallet connection.
+- **The page only signs `claim`.** Everything else (mint, advisory, patch, dispute, release, transfer) goes through `near-cli-rs`.
+- **Wallet redirect not exercised end to end.** The Collect click is tested with the same kind of `claim`-only key the wallet sign-in creates (see `video/record.mjs`), and the sign-in button uses near-api-js's standard `requestSignIn`; the MyNearWallet approval screen itself was not driven in a test.
+- **The seeded showcase passports** (`CAM-S2-0001`, `CAM-S2-0002`, `BELL-0001`) name a plain account as arbiter; lines created by `scripts/demo.sh` name the DAO.
 - **At most 200 advisories per line**, so `release` and `get_unit` stay within gas.
 - **Not audited.**
 
@@ -178,10 +211,11 @@ under support (after mint, before `support_until`).
 contract/src/lib.rs    the contract (NEP-171 passport + bond, advisory, dispute, release logic)
 contract/src/tests.rs  26 unit tests
 docs/index.html        the passport page (single static file, no build step, served by GitHub Pages)
+docs/vendor/           near-api-js 4.0.4 browser bundle, vendored unmodified
 scripts/demo.sh        full lifecycle on testnet
 scripts/seed.sh        seeds the showcase passports the page opens by default
-scripts/setup-accounts.sh, verify-sbom.sh, lib.sh
-video/                 how the demo video was recorded (real run + headless Chrome screenshots + ffmpeg)
+scripts/setup-accounts.sh, breach-for.sh, verify-sbom.sh, lib.sh
+video/record.mjs       how the demo video was recorded (real browser session, real transactions)
 sbom/                  sample CycloneDX SBOM whose hash is locked into the demo passports
 ```
 
@@ -189,7 +223,7 @@ sbom/                  sample CycloneDX SBOM whose hash is locked into the demo 
 
 - All code in this repository was written during the hackathon window (first commit 14 Nov 2026). There is no pre-hackathon baseline.
 - Written with an AI coding agent (Claude Code); reviewed and run by the author.
-- Libraries: [`near-sdk`](https://crates.io/crates/near-sdk) 5.30 and [`near-contract-standards`](https://crates.io/crates/near-contract-standards) 5.30 (NEP-171 implementation). Tooling: `cargo-near`, `near-cli-rs`. The page uses no libraries.
+- Libraries: [`near-sdk`](https://crates.io/crates/near-sdk) 5.30 and [`near-contract-standards`](https://crates.io/crates/near-contract-standards) 5.30 (NEP-171 implementation). Tooling: `cargo-near`, `near-cli-rs`. The page uses [`near-api-js`](https://github.com/near/near-api-js) 4.0.4 for wallet sign-in and signing; the video recorder uses `playwright-core`. The arbiter DAO is an unmodified [SputnikDAO v2](https://github.com/near-daos/sputnik-dao-contract) instance from the testnet factory.
 - The CVE ids used in the demo are real identifiers for the named open-source components, used as sample data. "Acme" is a made-up maker.
 
 ## License

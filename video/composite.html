@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Patchbond demo frame</title>
+<title>Sureplate demo frame</title>
 <style>
   html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #07090b; color: #e8edf2;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -25,15 +25,15 @@ const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c
 const root = document.getElementById('root');
 const CARDS = {
   intro: `<div class="card"><h1>Your smart camera has a known security hole.<br><span class="em">Who pays if the maker never fixes it?</span></h1>
-    <p>Patchbond: the maker locks a bond inside the device's NFT. Miss a patch deadline and whoever owns the device collects.</p>
-    <small>real transactions on NEAR testnet · contract patchbond.testnet · recording sped up</small></div>`,
+    <p>Sureplate: a security warranty that is its own escrow. The maker locks a bond inside the device's NFT.</p>
+    <small>real transactions on NEAR testnet · contract sureplate.testnet</small></div>`,
   outro: `<div class="card"><h1>Patch in time, or <span class="em">pay the owner.</span></h1>
     <p>One NFT per device. The bond, the SBOM hash and the right to collect travel with it when it is resold.</p>
-    <small>github.com/Aditya-galaxy/patchbond · aditya-galaxy.github.io/patchbond · built at NEAR HACKATHON</small></div>`,
+    <small>github.com/Aditya-galaxy/sureplate · aditya-galaxy.github.io/sureplate · built at NEAR HACKATHON</small></div>`,
 };
 if (p.get('card')) { root.innerHTML = CARDS[p.get('card')]; }
 else {
-  root.innerHTML = `<div class="bar"><b>Patchbond</b><span>left: scripts/demo.sh on NEAR testnet · right: the device's passport page, live</span><span class="r">sped up</span></div>
+  root.innerHTML = `<div class="bar"><b>Sureplate</b><span>left: scripts/demo.sh on NEAR testnet · right: the device's passport page, live</span><span class="r">sped up</span></div>
     <div class="main"><div class="term" id="t"></div><iframe src="../docs/index.html?token=${encodeURIComponent(p.get('token') || '')}"></iframe></div>`;
   fetch(p.get('log') + '?' + Date.now()).then(r => r.text()).then(txt => {
     const lines = txt.replace(/\x1b\[[0-9;]*m/g, '').split('\n')

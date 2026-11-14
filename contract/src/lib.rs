@@ -1,4 +1,4 @@
-//! Patchbond: a device passport NFT that escrows the maker's security-update bond.
+//! Sureplate: a device passport NFT that escrows the maker's security-update bond.
 //!
 //! A maker opens a product line, then mints one NFT per unit sold and locks NEAR
 //! inside it. If a security advisory against the line is not patched inside the
@@ -210,7 +210,7 @@ fn now_sec() -> u64 {
 fn emit(event: &str, data: near_sdk::serde_json::Value) {
     env::log_str(&format!(
         "EVENT_JSON:{}",
-        json!({"standard": "patchbond", "version": "1.0.0", "event": event, "data": [data]})
+        json!({"standard": "sureplate", "version": "1.0.0", "event": event, "data": [data]})
     ));
 }
 
@@ -242,8 +242,8 @@ impl Contract {
             ),
             metadata: NFTContractMetadata {
                 spec: NFT_METADATA_SPEC.to_string(),
-                name: "Patchbond device passports".to_string(),
-                symbol: "PBOND".to_string(),
+                name: "Sureplate device passports".to_string(),
+                symbol: "SPLATE".to_string(),
                 icon: None,
                 base_uri: None,
                 reference: None,
@@ -332,7 +332,7 @@ impl Contract {
             Some(TokenMetadata {
                 title: Some(title),
                 description: Some(
-                    "Patchbond device passport. Holds the maker's security-update bond for this unit."
+                    "Sureplate device passport. Holds the maker's security-update bond for this unit."
                         .to_string(),
                 ),
                 media: None,

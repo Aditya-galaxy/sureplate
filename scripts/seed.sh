@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 source scripts/lib.sh
 
 MAKER="${MAKER:-acme-cam.testnet}"; ALICE="${ALICE:-pb-alice.testnet}"; BOB="${BOB:-pb-bob.testnet}"
-REPORTER="${REPORTER:-pb-reporter.testnet}"; ARBITER="${ARBITER:-pb-cert.testnet}"
+REPORTER="${REPORTER:-pb-reporter.testnet}"; ARBITER="${ARBITER:-sureplate-cert.sputnik-v2.testnet}"
 STAKE=100000000000000000000000
 SBOM_HASH=$(shasum -a 256 sbom/acme-cam-s2-1.4.0.cdx.json | awk '{print $1}')
 FIX_HASH=$(printf 'acme-cam-s2 firmware 1.4.1' | shasum -a 256 | awk '{print $1}')
