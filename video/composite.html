@@ -24,9 +24,11 @@ const p = new URLSearchParams(location.search);
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const root = document.getElementById('root');
 const CARDS = {
-  intro: `<div class="card"><h1>Your smart camera has a known security hole.<br><span class="em">Who pays if the maker never fixes it?</span></h1>
-    <p>Sureplate: a security warranty that is its own escrow. The maker locks a bond inside the device's NFT.</p>
+  intro: `<div class="card"><h1>If the maker misses a security patch deadline,<br><span class="em">the device's current owner collects.</span></h1>
+    <p>Sureplate: a security warranty that is its own escrow. The maker's bond is locked inside the device's NFT.</p>
     <small>real transactions on NEAR testnet · contract sureplate.testnet</small></div>`,
+  og: `<div class="card"><p style="color:#3ddc97;font:600 20px ui-monospace,Menlo,monospace;letter-spacing:.08em">SUREPLATE · ON NEAR</p><h1 style="font-size:84px">Patch in time,<br>or <span class="em">pay the owner.</span></h1>
+    <p style="font-size:29px">A security warranty that is its own escrow: the maker's bond lives inside the device's NFT.</p></div>`,
   outro: `<div class="card"><h1>Patch in time, or <span class="em">pay the owner.</span></h1>
     <p>One NFT per device. The bond, the SBOM hash and the right to collect travel with it when it is resold.</p>
     <small>github.com/Aditya-galaxy/sureplate · aditya-galaxy.github.io/sureplate · built at NEAR HACKATHON</small></div>`,

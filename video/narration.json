@@ -1,0 +1,13 @@
+{
+  "voice": "en-US-Chirp3-HD-Charon",
+  "lines": {
+    "intro":  "If a device maker misses a security patch deadline, who pays? With Sureplate, the device's current owner collects.",
+    "own":    "Bob owns this camera. Its passport is an NFT on NEAR, and the maker has locked a two NEAR bond inside it.",
+    "adv":    "A critical vulnerability is reported. The maker promised a fix within forty five seconds, so the clock starts.",
+    "resale": "While the clock runs, Bob sells the camera to Alice. The passport, and the bond inside it, go with it.",
+    "miss":   "The deadline passes. No patch.",
+    "click":  "So Alice, the new owner, clicks Collect.",
+    "paid":   "Half the bond moves from the maker's escrow, straight into her wallet, in one on-chain transaction.",
+    "outro":  "Sureplate. Patch in time, or pay the owner. Built at the NEAR Hackathon."
+  }
+}

@@ -1,13 +1,25 @@
 # Sureplate
 
-**A device passport NFT that holds the maker's security-update bond.**
+**If the maker misses a security patch deadline, the device's current owner can collect.**
+
+Sureplate is a security warranty that is its own escrow: a device passport NFT on NEAR that
+holds the maker's patch bond, and follows the device when it is resold.
 
 Built at NEAR HACKATHON (Nov 2026). Tracks: **NFTs That Do Something**, **Real-World Money**.
 
-- Live contract (testnet): [`sureplate.testnet`](https://testnet.nearblocks.io/address/sureplate.testnet)
 - Live passport page: https://aditya-galaxy.github.io/sureplate/
-- The owner collects with one click in the browser; one command runs the whole lifecycle on testnet: `scripts/demo.sh`
+- Live contract (testnet): [`sureplate.testnet`](https://testnet.nearblocks.io/address/sureplate.testnet)
 - Disputes are settled by a Sputnik DAO council vote: [`sureplate-cert.sputnik-v2.testnet`](https://testnet.nearblocks.io/address/sureplate-cert.sputnik-v2.testnet)
+- Demo video: a unit is resold while an advisory clock runs, the deadline is missed, and the **new** owner collects with one click. Narrated; every step is a real testnet transaction (listed under [Evidence](#evidence)).
+
+## Real now, demonstrated only, next
+
+| | |
+| --- | --- |
+| **Real now (testnet)** | Contract with bond escrow per unit, patch clock, payout to the current NFT holder by severity, resale via NEP-171, one dispute per advisory settled by a Sputnik DAO vote, end-of-support release. 26 unit tests. A live page that reads all of it from chain and lets the owner collect in one click. |
+| **Demonstrated only** | Testnet NEAR, a made-up maker ("Acme"), patch windows of seconds instead of days, a DAO whose council is three demo accounts. No manufacturer has bonded a real product. Not audited. |
+| **Next: advisory verification** | Today anyone may file an advisory by staking; a wrong one is caught only by the maker's dispute. Next: check the public vulnerability record (OSV/NVD) against the unit's committed SBOM inside an attested enclave (e.g. OutLayer on NEAR), so a valid advisory is accepted without a vote and an irrelevant one is refused at filing. |
+| **Next: arbiter trust** | The arbiter is whoever the maker names, shown on every passport. Next: a standing council of CERTs, auditors and insurers that stakes its own funds and is slashed when overturned, so buyers can trust lines that use it without trusting the maker's choice. Then a stablecoin (NEP-141) bond so the warranty's value does not move with NEAR's price. |
 
 ## The problem
 
@@ -170,6 +182,21 @@ scripts/verify-sbom.sh CAM-S2-0001 sbom/acme-cam-s2-1.4.0.cdx.json
 
 Prints `MATCH` when the file hashes to what the maker locked into the passport.
 
+## Evidence
+
+Transactions from the recorded demo run (resale during an open advisory, then the new owner's
+claim from the browser) are written to `video/out/evidence.md` by `node video/record.mjs`. The page also links every
+passport to the contract's full transaction history and shows each advisory's deadline and payout.
+From the last run:
+
+| Account | Call | Transaction |
+| --- | --- | --- |
+| acme-cam.testnet | `create_line` | [GXW3chAosB…](https://testnet.nearblocks.io/txns/GXW3chAosBzpXgHmp76AxMjhL5cmEPk9561i8Po95hui) |
+| acme-cam.testnet | `mint_unit` | [42m1raZ9Ux…](https://testnet.nearblocks.io/txns/42m1raZ9Uxk39ybvXmeMbmLhfrRmPQqWAr761WcWvBTz) |
+| pb-reporter.testnet | `file_advisory` | [6FjRzExjZ5…](https://testnet.nearblocks.io/txns/6FjRzExjZ5XfVczLXwxVWi58sXeSYrMeFTeFUqBfkNpp) |
+| pb-bob.testnet | `nft_transfer` | [5gxMuTTBtz…](https://testnet.nearblocks.io/txns/5gxMuTTBtzUKxNonePhvxC2sNjLDQ4qG8YG8yYkdBRR8) |
+| pb-alice.testnet | `claim (in the browser)` | [JZjnWrKuNT…](https://testnet.nearblocks.io/txns/JZjnWrKuNTvA73LxTu8xByHvwC9T5qs2dQiHDzvN69d) |
+
 ## Contract interface
 
 `contract/src/lib.rs`, one file. All timestamps are unix seconds; amounts are yoctoNEAR strings.
@@ -224,6 +251,7 @@ scripts/demo.sh        full lifecycle on testnet
 scripts/seed.sh        seeds the showcase passports the page opens by default
 scripts/setup-accounts.sh, breach-for.sh, verify-sbom.sh, lib.sh
 video/record.mjs       how the demo video was recorded (real browser session, real transactions)
+video/voice.sh         narration via Google Cloud Text-to-Speech (Chirp 3 HD), script in video/narration.json
 sbom/                  sample CycloneDX SBOM whose hash is locked into the demo passports
 ```
 

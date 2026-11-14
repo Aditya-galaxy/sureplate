@@ -3,115 +3,185 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sureplate · device passport</title>
-<meta name="description" content="A device passport NFT on NEAR that holds the maker's security-update bond.">
+<title>Sureplate · patch in time, or pay the owner</title>
+<meta name="description" content="A security warranty that is its own escrow: a device passport NFT on NEAR that holds the maker's patch bond. Miss a deadline and the owner collects.">
+<meta property="og:title" content="Sureplate: patch in time, or pay the owner">
+<meta property="og:description" content="A device passport NFT on NEAR that holds the maker's security-update bond. Miss a patch deadline and whoever holds the NFT collects.">
+<meta property="og:image" content="https://aditya-galaxy.github.io/sureplate/og.png">
+<meta property="og:url" content="https://aditya-galaxy.github.io/sureplate/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0d10">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233ddc97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E">
 <style>
   :root {
-    --bg: #0c0f12; --panel: #14191e; --panel2: #1a2027; --line: #26303a;
-    --text: #e8edf2; --muted: #8b98a5; --faint: #5d6975;
-    --ok: #3ddc97; --warn: #ffb648; --bad: #ff5d5d; --info: #6cb6ff; --gone: #7c8794;
-    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --bg: #0a0d10; --panel: #12171c; --panel2: #192027; --line: #242e38; --line2: #32404d;
+    --text: #edf1f5; --muted: #93a0ad; --faint: #62707d;
+    --ok: #3ddc97; --warn: #ffb648; --bad: #ff6b6b; --info: #74b9ff; --gone: #8591a0;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
-  body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  body { font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(900px 420px at 50% -120px, rgba(61,220,151,.10), transparent 70%); background-repeat: no-repeat; }
   a { color: var(--info); text-decoration: none; } a:hover { text-decoration: underline; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 60px; }
-  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-  .logo { font-weight: 700; font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; }
-  .logo svg { width: 24px; height: 24px; }
-  .tag { color: var(--muted); font-size: 13px; }
+  code { font: 12.5px var(--mono); background: var(--panel2); padding: 1px 5px; border-radius: 4px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 16px 64px; }
+
+  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 16px 0; }
+  .logo { font-weight: 700; font-size: 19px; letter-spacing: -.015em; display: flex; align-items: center; gap: 9px; color: var(--text); }
+  .logo:hover { text-decoration: none; } .logo svg { width: 24px; height: 24px; color: var(--ok); }
+  .links { display: flex; gap: 16px; font-size: 14px; } .links a { color: var(--muted); } .links a:hover { color: var(--text); text-decoration: none; }
   .spacer { flex: 1; }
+  .me { font: 12px var(--mono); color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .me b { color: var(--text); font-weight: 600; }
+  .me .bal { color: var(--text); padding: 4px 9px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--line); transition: background .3s, color .3s, border-color .3s; }
+  .me .bal.up { background: rgba(61,220,151,.22); color: var(--ok); border-color: var(--ok); }
+
+  .hero { padding: 26px 0 30px; }
+  .eyebrow { font: 600 11.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ok); margin-bottom: 14px; }
+  .h { font-size: clamp(34px, 6.2vw, 58px); line-height: 1.04; letter-spacing: -.035em; margin: 0 0 16px; font-weight: 750; }
+  .h em { font-style: normal; color: var(--ok); }
+  .lede b { color: var(--text); font-weight: 600; }
+  .lede { font-size: clamp(16px, 2.1vw, 19px); color: #b9c4cf; max-width: 700px; margin: 0 0 22px; line-height: 1.5; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 9px; font-weight: 600; font-size: 14px;
+    background: var(--text); color: #0a0d10; border: 1px solid var(--text); cursor: pointer; }
+  .btn:hover { text-decoration: none; filter: brightness(.92); }
+  .btn.alt { background: transparent; color: var(--text); border-color: var(--line2); } .btn.alt:hover { border-color: var(--text); filter: none; }
+  .btn i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .lookup { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .lookup label { font: 600 11px var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+  form { display: flex; gap: 8px; flex: 1; min-width: 240px; }
+  input { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 10px 12px; font: 14px var(--mono); }
+  input:focus { outline: 2px solid var(--info); outline-offset: -1px; }
+  button { font-family: var(--sans); background: var(--text); color: #0a0d10; border: 0; border-radius: 9px; padding: 0 16px; font-weight: 600; cursor: pointer; }
   .live { font: 12px var(--mono); color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
   .dot.err { background: var(--bad); animation: none; }
   @keyframes pulse { 50% { opacity: .35; } }
-  form { display: flex; gap: 8px; margin-bottom: 16px; }
-  input { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 10px 12px; font: 14px var(--mono); }
-  input:focus { outline: 2px solid var(--info); outline-offset: -1px; }
-  button { background: var(--text); color: #0c0f12; border: 0; border-radius: 8px; padding: 0 16px; font-weight: 600; cursor: pointer; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  .top { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-  h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -.02em; overflow-wrap: anywhere; }
-  .sub { color: var(--muted); font: 13px var(--mono); overflow-wrap: anywhere; }
-  .badge { margin-left: auto; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 13px;
-    letter-spacing: .04em; text-transform: uppercase; border: 1px solid currentColor; white-space: nowrap; }
-  .s-covered { color: var(--ok); background: rgba(61,220,151,.09); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-bottom: 16px; }
+  .pass { padding: 0; overflow: hidden; }
+  .pass .inner { padding: 22px; }
+  .banner { display: flex; align-items: center; gap: 12px; padding: 12px 22px; font-size: 14.5px; border-bottom: 1px solid var(--line); }
+  .banner svg { width: 20px; height: 20px; flex: none; }
+  .banner b { text-transform: uppercase; letter-spacing: .06em; font-size: 12.5px; white-space: nowrap; }
+  .banner span { color: var(--text); }
+  .s-covered { color: var(--ok); background: rgba(61,220,151,.08); }
   .s-advisory_open { color: var(--warn); background: rgba(255,182,72,.09); }
-  .s-breach_claimable { color: var(--bad); background: rgba(255,93,93,.1); }
-  .s-end_of_support, .s-released { color: var(--gone); background: rgba(124,135,148,.1); }
-  .verdict { margin: 14px 0 0; color: var(--text); font-size: 15px; }
-  .bond { margin-top: 18px; }
+  .s-breach_claimable { color: var(--bad); background: rgba(255,107,107,.10); }
+  .s-end_of_support, .s-released { color: var(--gone); background: rgba(133,145,160,.09); }
+  .top { display: flex; gap: 16px; align-items: center; }
+  .glyph { width: 52px; height: 52px; border-radius: 13px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; flex: none; color: var(--muted); }
+  .glyph svg { width: 28px; height: 28px; }
+  h1 { font-size: 25px; margin: 0 0 2px; letter-spacing: -.02em; overflow-wrap: anywhere; line-height: 1.2; }
+  .sub { color: var(--muted); font: 12.5px var(--mono); overflow-wrap: anywhere; }
+  .bond { margin-top: 22px; padding: 16px 18px; background: #0d1216; border: 1px solid var(--line); border-radius: 12px; }
   .bond-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .bond-num { font: 600 28px var(--mono); letter-spacing: -.02em; }
-  .bond-num small { font-size: 14px; color: var(--muted); font-weight: 400; }
-  .bar { height: 10px; background: var(--panel2); border-radius: 6px; overflow: hidden; margin-top: 8px; border: 1px solid var(--line); }
-  .bar i { display: block; height: 100%; background: var(--ok); transition: width .6s ease; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 22px; margin-top: 20px; }
-  .k { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-  .v { font: 13px var(--mono); overflow-wrap: anywhere; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
-  .adv { border-top: 1px solid var(--line); padding: 14px 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; }
-  .adv:first-of-type { border-top: 0; padding-top: 0; } .adv:last-child { padding-bottom: 0; }
-  .adv-title { font-weight: 600; overflow-wrap: anywhere; }
+  .bond-num { font: 650 30px var(--mono); letter-spacing: -.03em; }
+  .bond-num small { font: 400 13.5px var(--sans); color: var(--muted); letter-spacing: 0; }
+  .k { color: var(--faint); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; }
+  .bar { display: flex; height: 12px; background: var(--panel2); border-radius: 7px; overflow: hidden; margin-top: 10px; border: 1px solid var(--line); }
+  .bar i { display: block; height: 100%; transition: width .7s ease; }
+  .bar .rem { background: var(--ok); }
+  .bar .owed { background: repeating-linear-gradient(135deg, var(--bad) 0 6px, #c94f4f 6px 12px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 9px; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px 22px; margin-top: 22px; }
+  .v { font: 13px var(--mono); overflow-wrap: anywhere; margin-top: 2px; }
+  h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0 0 14px; font-weight: 650; }
+  .adv { border-left: 3px solid var(--line2); padding: 2px 0 2px 16px; margin-bottom: 18px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; }
+  .adv:last-child { margin-bottom: 0; }
+  .adv.r-pending, .adv.r-disputed { border-color: var(--warn); } .adv.r-patched { border-color: var(--ok); }
+  .adv.r-breach_claimable { border-color: var(--bad); } .adv.r-breach_claimed { border-color: var(--info); }
+  .adv-title { font-weight: 650; overflow-wrap: anywhere; }
   .adv-meta { color: var(--muted); font: 12px var(--mono); overflow-wrap: anywhere; }
-  .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .04em; align-self: start; white-space: nowrap; border: 1px solid currentColor; }
+  .pill { font: 650 10.5px var(--mono); padding: 4px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .05em; align-self: start; white-space: nowrap; border: 1px solid currentColor; }
   .p-pending, .p-disputed { color: var(--warn); } .p-patched { color: var(--ok); }
   .p-breach_claimable { color: var(--bad); } .p-breach_claimed { color: var(--info); } .p-rejected { color: var(--gone); }
-  .sev { font: 600 11px var(--mono); padding: 1px 6px; border-radius: 4px; background: var(--panel2); margin-left: 6px; }
+  .sev { font: 650 10.5px var(--mono); padding: 2px 6px; border-radius: 4px; background: var(--panel2); margin-left: 8px; vertical-align: 1px; }
   .sev.Critical { color: var(--bad); } .sev.High { color: var(--warn); } .sev.Low { color: var(--muted); }
-  .note { grid-column: 1 / -1; font-size: 13px; color: var(--text); }
-  .note b { font-family: var(--mono); }
-  pre { grid-column: 1 / -1; margin: 4px 0 0; background: #0a0d10; border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font: 12px/1.5 var(--mono); color: #c9d4de; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .terms { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 22px; font: 12.5px var(--mono); color: var(--text); background: #0d1216; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  .terms i { font: 600 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin-right: 8px; }
+  .note { grid-column: 1 / -1; font-size: 13.5px; color: #d5dde5; }
+  .note b { font-family: var(--mono); color: var(--text); }
+  pre { grid-column: 1 / -1; margin: 6px 0 0; background: #080b0d; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+    font: 12px/1.5 var(--mono); color: #c9d4de; white-space: pre-wrap; overflow-wrap: anywhere; }
   .empty { color: var(--muted); }
   .units { display: flex; flex-wrap: wrap; gap: 8px; }
   .unit { font: 12px var(--mono); padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--panel2); }
-  .unit:hover { border-color: var(--info); text-decoration: none; }
-  .unit.on { border-color: var(--text); }
-  .how { color: var(--muted); font-size: 13px; }
-  .how ol { margin: 6px 0 0; padding-left: 20px; } .how li { margin: 3px 0; }
-  .me { font: 12px var(--mono); color: var(--muted); display: flex; align-items: center; gap: 10px; }
-  .me b { color: var(--text); font-weight: 600; }
-  .me .bal { color: var(--text); padding: 3px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line); transition: background .3s, color .3s; }
-  .me .bal.up { background: rgba(61,220,151,.25); color: var(--ok); border-color: var(--ok); }
-  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); padding: 7px 12px; font: 600 12px inherit; }
+  .unit:hover { border-color: var(--info); text-decoration: none; } .unit.on { border-color: var(--text); }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line2); padding: 8px 12px; font: 600 12.5px var(--sans); border-radius: 8px; }
   .btn-ghost:hover { border-color: var(--text); }
-  .collect { grid-column: 1 / -1; justify-self: start; background: var(--ok); color: #062014; padding: 11px 18px; font-size: 15px; margin-top: 4px; }
-  .collect:disabled { opacity: .6; cursor: progress; }
-  details { grid-column: 1 / -1; color: var(--muted); font-size: 12px; } summary { cursor: pointer; }
-  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #10261c; border: 1px solid var(--ok); color: var(--text);
-    padding: 12px 18px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.5); z-index: 5; max-width: calc(100vw - 32px); }
+  .collect { grid-column: 1 / -1; justify-self: start; background: var(--ok); color: #05190f; padding: 12px 20px; font-size: 15px; margin-top: 6px; border-radius: 10px;
+    box-shadow: 0 0 0 0 rgba(61,220,151,.5); animation: ring 2.2s infinite; }
+  .collect:disabled { opacity: .65; cursor: progress; animation: none; }
+  @keyframes ring { 70% { box-shadow: 0 0 0 10px rgba(61,220,151,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,151,0); } }
+  details { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; } summary { cursor: pointer; }
+
+  .sect { margin: 44px 0 16px; } .sect h3 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 6px; } .sect p { color: var(--muted); margin: 0; max-width: 680px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .step .n { font: 650 12px var(--mono); color: var(--ok); margin-bottom: 10px; }
+  .step b { display: block; font-size: 15.5px; margin-bottom: 5px; letter-spacing: -.01em; }
+  .step span { color: var(--muted); font-size: 13.5px; line-height: 1.5; display: block; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .rules .card { margin: 0; } .rules p { color: var(--muted); font-size: 13.5px; margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  td, th { text-align: left; padding: 7px 0; border-bottom: 1px solid var(--line); } tr:last-child td { border-bottom: 0; }
+  th { color: var(--faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; } td:last-child, th:last-child { text-align: right; font-family: var(--mono); }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #0f2a1e; border: 1px solid var(--ok); color: var(--text);
+    padding: 12px 18px; border-radius: 11px; font-size: 14px; box-shadow: 0 10px 34px rgba(0,0,0,.55); z-index: 5; max-width: calc(100vw - 32px); }
   .toast.err { background: #2a1414; border-color: var(--bad); }
-  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 22px; max-width: min(620px, calc(100vw - 32px)); }
-  dialog::backdrop { background: rgba(0,0,0,.6); }
-  dialog p { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line2); border-radius: 16px; padding: 24px; max-width: min(620px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(0,0,0,.62); }
+  dialog p { color: var(--muted); font-size: 13.5px; margin: 0 0 10px; }
   dialog label { display: block; font-size: 12px; color: var(--muted); margin-top: 12px; }
   dialog input { display: block; width: 100%; margin-top: 4px; }
   dialog .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-  dialog .primary { padding: 9px 16px; }
+  dialog .primary { padding: 10px 16px; }
   dialog #keyerr { margin-top: 10px; min-height: 1.4em; color: var(--warn); }
-  footer { color: var(--faint); font-size: 12px; margin-top: 24px; }
+  footer { color: var(--faint); font-size: 12.5px; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); line-height: 1.7; }
+  body.embed .hero, body.embed .links, body.embed .sect, body.embed .steps, body.embed .rules { display: none; }
+  @media (max-width: 560px) { .banner { align-items: flex-start; flex-direction: column; gap: 4px; } .glyph { display: none; } .card, .pass .inner { padding: 18px; } .banner { padding: 12px 18px; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+    <a class="logo" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
       Sureplate
-    </div>
-    <div class="tag">the security-update warranty that lives inside the device's NFT</div>
+    </a>
+    <nav class="links"><a href="#how">How it works</a><a href="https://github.com/Aditya-galaxy/sureplate" target="_blank" rel="noopener">GitHub</a></nav>
     <div class="spacer"></div>
     <div class="me" id="me"></div>
-    <div class="live"><span class="dot" id="dot"></span><span id="live">connecting…</span></div>
   </header>
 
-  <form id="f">
-    <input id="q" placeholder="Passport id, e.g. CAM-S2-1114170804" autocomplete="off" spellcheck="false" aria-label="Passport id">
-    <button>Look up</button>
-  </form>
+  <section class="hero">
+    <div class="eyebrow">Built at NEAR Hackathon · live on testnet</div>
+    <div class="h" role="heading" aria-level="1">Patch in time,<br>or <em>pay the owner.</em></div>
+    <p class="lede"><b>If the maker misses a security patch deadline, the device's current owner can collect.</b> Sureplate is a security warranty that is its own escrow: the maker's bond is locked inside the device's NFT on NEAR, and it follows the device when it is resold.</p>
+    <div class="cta">
+      <a class="btn" data-token="CAM-S2-0001" href="?token=CAM-S2-0001"><i style="background:#ff6b6b"></i>See a missed deadline</a>
+      <a class="btn alt" data-token="BELL-0001" href="?token=BELL-0001"><i style="background:#ffb648"></i>Watch a patch clock run</a>
+      <a class="btn alt" data-token="CAM-S2-0002" href="?token=CAM-S2-0002"><i style="background:#74b9ff"></i>See an owner who was paid</a>
+    </div>
+  </section>
+
+  <div class="lookup" id="passport">
+    <label for="q">Device passport</label>
+    <form id="f">
+      <input id="q" placeholder="Passport id, e.g. CAM-S2-0001" autocomplete="off" spellcheck="false">
+      <button>Look up</button>
+    </form>
+    <div class="live"><span class="dot" id="dot"></span><span id="live">connecting…</span></div>
+  </div>
 
   <div id="out"><div class="card empty">Loading…</div></div>
 
@@ -120,20 +190,39 @@
     <div class="units" id="units"><span class="empty">Loading…</span></div>
   </div>
 
-  <div class="card how">
-    <h2>How it works</h2>
-    <ol>
-      <li>The maker mints one passport NFT per unit and locks NEAR inside it as that unit's bond.</li>
-      <li>Anyone can file a security advisory against the product line by staking NEAR. That starts the patch clock.</li>
-      <li>Patch published in time: nothing is owed. Deadline missed: the <b>current</b> NFT owner collects 10% / 25% / 50% of the bond (low / high / critical).</li>
-      <li>Bogus advisory: the maker disputes, an arbiter rules, the loser pays.</li>
-      <li>After the support period, the maker takes back whatever is left. Sell the device and the passport, bond and claim rights go with it.</li>
-    </ol>
+  <div class="sect" id="how"><h3>How it works</h3><p>Four rules, all enforced by one contract on NEAR. No insurer, no claims desk.</p></div>
+  <div class="steps">
+    <div class="step"><div class="n">01</div><b>Mint and bond</b><span>The maker mints one passport NFT per unit sold and locks NEAR inside it, with the hash of the unit's software bill of materials and its end-of-support date.</span></div>
+    <div class="step"><div class="n">02</div><b>An advisory starts the clock</b><span>Anyone can report a vulnerability against the product line by staking NEAR. The maker's promised patch window starts counting down.</span></div>
+    <div class="step"><div class="n">03</div><b>Patch, or pay</b><span>Fix published in time: nothing is owed. Deadline missed: the current holder of the NFT collects a share of the bond, in one click.</span></div>
+    <div class="step"><div class="n">04</div><b>Resell it, it all moves</b><span>A normal NFT transfer carries the passport, the remaining bond and the right to collect to the next owner.</span></div>
+  </div>
+  <div class="rules">
+    <div class="card">
+      <h2>What a missed deadline pays</h2>
+      <table><tr><th>Severity</th><th>Share of the unit's bond</th></tr><tr><td>Low</td><td>10%</td></tr><tr><td>High</td><td>25%</td></tr><tr><td>Critical</td><td>50%</td></tr></table>
+    </div>
+    <div class="card">
+      <h2>If the advisory is wrong</h2>
+      <p>The maker can dispute it once, for a fee equal to the reporter's stake. The clock pauses and the line's arbiter rules. In the demo that is a Sputnik DAO council vote. Upheld: the fee goes to the reporter and the clock restarts. Rejected: the reporter's stake goes to the maker.</p>
+    </div>
+    <div class="card">
+      <h2>When support ends</h2>
+      <p>The maker takes back what is left of the bond, after anything still owed to the owner is paid first. The passport stays with the owner as the unit's permanent record.</p>
+    </div>
+  </div>
+
+  <div class="sect"><h3>What is real, and what is next</h3><p>Stated plainly, so you know what you are looking at.</p></div>
+  <div class="rules">
+    <div class="card"><h2>Real today</h2><p>The contract, the bond escrow, the patch clock, the payout to the current NFT holder, resale, disputes through a DAO vote and the end-of-support release all run on NEAR testnet. Every state on this page is read from the chain.</p></div>
+    <div class="card"><h2>Only demonstrated</h2><p>Testnet NEAR, a made-up maker, and patch windows of seconds instead of days. No real manufacturer has bonded a product. The contract is not audited.</p></div>
+    <div class="card"><h2>Next</h2><p><b style="color:var(--text)">Advisory verification:</b> check the public vulnerability record against the unit's SBOM inside an attested enclave, so a valid advisory needs no vote. <b style="color:var(--text)">Arbiter trust:</b> a council of CERTs, auditors and insurers with their own stake, instead of three demo accounts. Then a stablecoin bond.</p></div>
   </div>
 
   <footer>
-    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · refreshes every 5s · sign-in only authorises <code>claim</code> ·
-    <a href="https://github.com/Aditya-galaxy/sureplate" target="_blank" rel="noopener">source</a>
+    Contract <a id="clink" target="_blank" rel="noopener"></a> on NEAR testnet · arbiter DAO <a href="https://testnet.nearblocks.io/address/sureplate-cert.sputnik-v2.testnet" target="_blank" rel="noopener">sureplate-cert.sputnik-v2.testnet</a><br>
+    This page reads the chain directly and refreshes every 5s. Signing in only ever authorises <code>claim</code>. Testnet demo, not audited. “Acme” is a made-up maker.
+    <a href="https://github.com/Aditya-galaxy/sureplate" target="_blank" rel="noopener">Source on GitHub</a>
   </footer>
 </div>
 
@@ -269,7 +358,8 @@ document.addEventListener('click', async e => {
     const btn = e.target; btn.disabled = true; btn.textContent = 'Collecting…';
     try {
       const hash = await sendClaim(Number(btn.dataset.claim));
-      toast(`Collected <b>${esc(btn.dataset.amount)} NEAR</b> from the maker's bond. <a href="${EXPLORER}/txns/${encodeURIComponent(hash)}" target="_blank" rel="noopener">View transaction</a>`);
+      try { if (hash) localStorage.setItem('sureplate_tx:' + token + '#' + btn.dataset.claim, hash); } catch (x) {}
+      toast(`Collected <b>${esc(btn.dataset.amount)} NEAR</b> from the maker's bond. <a href="${EXPLORER}/txns/${encodeURIComponent(hash)}" target="_blank" rel="noopener">Transaction ${esc(hash.slice(0, 8))}… ↗</a>`);
     } catch (err) {
       toast('Collect failed: ' + esc(String(err?.kind?.ExecutionError || err?.message || err).slice(0, 180)), true);
     }
@@ -284,6 +374,14 @@ $('keyform').addEventListener('submit', async e => {
 });
 $('kcancel').addEventListener('click', () => $('keydlg').close());
 
+const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICON = {
+  covered: svg('<path d="M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/>'),
+  advisory_open: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  breach_claimable: svg('<path d="M12 3l9.500 17h-19L12 3z"/><path d="M12 10v4M12 17.500v.010"/>'),
+  end_of_support: svg('<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>'),
+  released: svg('<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>'),
+};
 const VERDICT = {
   covered: 'Under support. No advisory is waiting on the maker, and the bond is locked in this passport.',
   advisory_open: 'An advisory is open. The maker is on the clock; if the deadline passes unpatched, the owner collects.',
@@ -291,6 +389,8 @@ const VERDICT = {
   end_of_support: 'Support period is over. The maker can take back what is left of the bond.',
   released: 'Support ended and the bond was settled. This passport remains as the unit’s permanent record.',
 };
+const PCT = { Low: 10, High: 25, Critical: 50 };
+const paidTx = k => { try { return localStorage.getItem('sureplate_tx:' + k) || ''; } catch (e) { return ''; } };
 const STATE_LABEL = { pending: 'clock running', disputed: 'disputed', patched: 'patched in time',
   breach_claimable: 'deadline missed', breach_claimed: 'owner paid', rejected: 'rejected' };
 
@@ -314,14 +414,16 @@ function advHtml(u, a) {
         `<details><summary>or from the command line</summary>${cli}</details>`;
     }
   } else if (a.state === 'breach_claimed') {
-    note = `<div class="note">Deadline missed. The owner was paid out of the bond for this one.</div>`;
+    const tx = paidTx(u.token_id + '#' + v.id);
+    note = `<div class="note">Deadline missed. The owner was paid out of the bond for this one.${tx ? ` <a href="${EXPLORER}/txns/${encodeURIComponent(tx)}" target="_blank" rel="noopener">Payout transaction ↗</a>` : ''}</div>`;
   } else if (a.state === 'rejected') {
     note = `<div class="note">Arbiter ruled it invalid${v.note ? `: “${esc(v.note)}”` : ''}. Reporter's stake went to the maker.</div>`;
   }
-  return `<div class="adv">
+  return `<div class="adv r-${esc(a.state)}">
     <div>
       <div class="adv-title">#${v.id} ${esc(v.reference)}<span class="sev ${esc(v.severity)}">${esc(v.severity)}</span></div>
       <div class="adv-meta">${esc(v.component || 'component not given')} · filed ${when(v.filed_at)} by ${esc(v.reporter)}</div>
+      <div class="terms"><span><i>Patch deadline</i>${when(v.deadline)}</span><span><i>If missed, owner gets</i>${PCT[v.severity] || '?'}% of the bond = ${near(BigInt(u.bond) * BigInt(PCT[v.severity] || 0) / 100n)} NEAR</span></div>
     </div>
     <span class="pill p-${esc(a.state)}">${esc(STATE_LABEL[a.state] || a.state)}</span>
     ${note}
@@ -334,22 +436,26 @@ function render(u) {
   const support = now <= u.support_until
     ? `<span class="cd" data-until="${u.support_until}">${dur(u.support_until - now)}</span> left · until ${when(u.support_until)}`
     : `ended ${when(u.support_until)}`;
+  const owed = u.advisories.reduce((t, a) => t + BigInt(a.claimable), 0n);
+  const owedPct = BigInt(u.bond) > 0n ? Number(owed * 10000n / BigInt(u.bond)) / 100 : 0;
   $('out').innerHTML = `
-    <div class="card">
+    <div class="card pass">
+      <div class="banner s-${esc(u.status)}">${ICON[u.status] || ''}<b>${esc(u.status.replace(/_/g, ' '))}</b><span>${esc(VERDICT[u.status] || '')}</span></div>
+      <div class="inner">
       <div class="top">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="3"/><circle cx="12" cy="13" r="3.2"/><path d="M8 7l1.200-2h5.600L16 7"/></svg></div>
         <div>
           <h1>${esc(u.line_name)}</h1>
           <div class="sub">passport ${esc(u.token_id)} · line ${esc(u.line_id)}</div>
         </div>
-        <span class="badge s-${esc(u.status)}">${esc(u.status.replace(/_/g, ' '))}</span>
       </div>
-      <p class="verdict">${esc(VERDICT[u.status] || '')}</p>
       <div class="bond">
         <div class="bond-head">
           <div class="bond-num">${near(u.remaining)} <small>NEAR left of ${near(u.bond)} bonded</small></div>
           <div class="k">${u.status === 'released' ? 'bond settled' : 'locked in this NFT'}</div>
         </div>
-        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="bar" role="img" aria-label="${pct}% of the bond remains"><i class="rem" style="width:${Math.max(0, pct - owedPct)}%"></i><i class="owed" style="width:${owedPct}%"></i></div>
+        <div class="legend"><span><i style="background:var(--ok)"></i>stays locked</span>${owedPct ? `<span><i style="background:var(--bad)"></i>owed to the owner now (${near(owed)} NEAR)</span>` : ''}${pct < 100 ? '<span><i style="background:var(--panel2);border:1px solid var(--line2)"></i>already paid out or returned</span>' : ''}</div>
       </div>
       <div class="grid">
         <div><div class="k">Current owner</div><div class="v">${acct(u.owner_id)}</div></div>
@@ -359,6 +465,8 @@ function render(u) {
         <div><div class="k">Promised patch window</div><div class="v">${dur(u.patch_window_sec)}</div></div>
         <div><div class="k">Security support</div><div class="v">${support}</div></div>
         <div style="grid-column:1/-1"><div class="k">SBOM sha256</div><div class="v">${esc(u.sbom_sha256)}</div></div>
+        <div style="grid-column:1/-1"><div class="k">On-chain evidence</div><div class="v"><a href="${EXPLORER}/address/${encodeURIComponent(CONTRACT)}" target="_blank" rel="noopener">every transaction on ${esc(CONTRACT)} ↗</a> · <a href="${EXPLORER}/address/${encodeURIComponent(u.owner_id)}" target="_blank" rel="noopener">owner's account ↗</a></div></div>
+      </div>
       </div>
     </div>
     <div class="card">
@@ -381,7 +489,7 @@ async function loadUnits() {
     }
     unitsAt = Date.now();
     $('units').innerHTML = list.reverse().map(t =>
-      `<a class="unit${t.token_id === token ? ' on' : ''}" href="?token=${encodeURIComponent(t.token_id)}${params.get('contract') ? '&contract=' + encodeURIComponent(CONTRACT) : ''}">${esc(t.token_id)}</a>`).join('');
+      `<a class="unit${t.token_id === token ? ' on' : ''}" data-token="${esc(t.token_id)}" href="?token=${encodeURIComponent(t.token_id)}${params.get('contract') ? '&contract=' + encodeURIComponent(CONTRACT) : ''}">${esc(t.token_id)}</a>`).join('');
   } catch (e) { /* the status line already reports rpc trouble */ }
 }
 
@@ -409,6 +517,17 @@ setInterval(() => {
   document.querySelectorAll('.cd').forEach(el => { el.textContent = dur(Number(el.dataset.until) - now); });
 }, 1000);
 
+if (params.get('embed')) document.body.classList.add('embed');
+function show(v, scroll) {
+  token = v; lastView = null; $('q').value = v; unitsAt = 0;
+  const p = new URLSearchParams(location.search); p.set('token', v);
+  history.replaceState(null, '', '?' + p.toString());
+  tick(); if (scroll) $('passport').scrollIntoView({ block: 'start' });
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[data-token]'); if (!a) return;
+  e.preventDefault(); show(a.dataset.token, true);
+});
 $('f').addEventListener('submit', e => {
   e.preventDefault();
   const v = $('q').value.trim(); if (!v) return;
