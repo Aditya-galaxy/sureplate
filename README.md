@@ -51,10 +51,12 @@ The maker puts money behind the promise, per unit, and the unit's NFT holds it.
 - **Live status in a standard field.** `nft_token` injects the current status and remaining
   bond into `metadata.extra`, so any NEP-171 wallet or marketplace can show whether the
   device is covered without knowing about Sureplate.
-- **Function-call access keys make collecting one click.** Signing in on the page asks the
-  wallet for a key that can call only `claim` on this contract, with zero deposit. After that
-  the owner clicks Collect and the page signs the transaction itself: no popup, and the key
-  cannot move the NFT or spend the account's NEAR beyond gas.
+- **Function-call access keys make collecting one click.** The owner can sign in with an
+  access key that can call only `claim` on this contract, with zero deposit. The page checks
+  that restriction on chain and refuses anything broader (a full-access key is rejected).
+  After that the owner clicks Collect and the page signs the transaction itself: no popup,
+  and the key cannot move the NFT or spend the account's NEAR beyond gas. Ordinary wallets
+  work too, through NEAR Connect, with a wallet approval per claim.
 - **SputnikDAO as arbiter.** The arbiter is just an account id, so a DAO fits without any
   contract change: its proposal calls `resolve_dispute` on approval.
 - **Named accounts** make the parties legible: a buyer sees `acme-cam.testnet` as maker and
@@ -132,26 +134,32 @@ the three DAO transactions of the last full run are
 
 ### 3b. Click Collect yourself (3 minutes)
 
-You need a testnet wallet account (for example at https://testnet.mynearwallet.com) and the
-accounts from `setup-accounts.sh`:
+You need the accounts from `setup-accounts.sh`. Use one of them (say `yourprefix-bob.testnet`)
+as the device owner:
 
 ```sh
 MAKER=yourprefix-maker.testnet REPORTER=yourprefix-reporter.testnet ARBITER=yourprefix-cert.testnet \
-  scripts/breach-for.sh your-wallet.testnet
+  scripts/breach-for.sh yourprefix-bob.testnet
 ```
 
-It mints a bonded passport to your wallet account, files a critical advisory with a 30-second
-window and prints a URL. Open it after the window, press **Sign in with NEAR wallet**, approve
-the `claim`-only key, then press **Collect**. You see a green toast with the transaction link,
-your balance at the top right rise by about 0.995 NEAR, and the bond bar drop to half.
+It mints a bonded passport to that account, files a critical advisory with a 30-second window
+and prints a URL. Open it after the window and sign in one of two ways:
 
-Run it against your own deployment with `CONTRACT=your.testnet scripts/demo.sh` after:
+- **Use a claim-only key.** The dialog shows the `near account add-key … --function-names claim`
+  command. Run it for the owner account, paste the key it prints, press Sign in.
+- **Connect wallet.** Opens NEAR Connect; pick a testnet wallet that holds the owner account.
+
+Then press **Collect**. You see a green toast with the transaction link, the balance at the
+top right rise by about 0.995 NEAR, and the bond bar drop to half.
+
+### 3c. Your own deployment (optional)
 
 ```sh
 cd contract && cargo near build non-reproducible-wasm
 near contract deploy your.testnet use-file target/near/sureplate.wasm with-init-call new \
   json-args '{"owner_id":"your.testnet"}' prepaid-gas '30 Tgas' attached-deposit '0 NEAR' \
   network-config testnet sign-with-legacy-keychain send
+CONTRACT=your.testnet scripts/demo.sh
 ```
 
 ### 4. Check an SBOM against a passport
@@ -200,7 +208,7 @@ under support (after mint, before `support_until`).
 - **The bond is accounted per token inside one contract**, not held in a separate account per NFT.
 - **Bond is in NEAR**, so its fiat value moves. A stablecoin (NEP-141) bond is the obvious next step.
 - **The page only signs `claim`.** Everything else (mint, advisory, patch, dispute, release, transfer) goes through `near-cli-rs`.
-- **Wallet redirect not exercised end to end.** The Collect click is tested with the same kind of `claim`-only key the wallet sign-in creates (see `video/record.mjs`), and the sign-in button uses near-api-js's standard `requestSignIn`; the MyNearWallet approval screen itself was not driven in a test.
+- **Wallet path not exercised end to end.** The claim-only-key sign-in and the Collect click are tested in a real browser (`video/record.mjs` records exactly that). The Connect wallet button opens NEAR Connect and lists testnet wallets, but a claim signed through a third-party wallet was not tested. MyNearWallet no longer accepts app connections, so it is not an option.
 - **The seeded showcase passports** (`CAM-S2-0001`, `CAM-S2-0002`, `BELL-0001`) name a plain account as arbiter; lines created by `scripts/demo.sh` name the DAO.
 - **At most 200 advisories per line**, so `release` and `get_unit` stay within gas.
 - **Not audited.**
@@ -223,7 +231,7 @@ sbom/                  sample CycloneDX SBOM whose hash is locked into the demo 
 
 - All code in this repository was written during the hackathon window (first commit 14 Nov 2026). There is no pre-hackathon baseline.
 - Written with an AI coding agent (Claude Code); reviewed and run by the author.
-- Libraries: [`near-sdk`](https://crates.io/crates/near-sdk) 5.30 and [`near-contract-standards`](https://crates.io/crates/near-contract-standards) 5.30 (NEP-171 implementation). Tooling: `cargo-near`, `near-cli-rs`. The page uses [`near-api-js`](https://github.com/near/near-api-js) 4.0.4 for wallet sign-in and signing; the video recorder uses `playwright-core`. The arbiter DAO is an unmodified [SputnikDAO v2](https://github.com/near-daos/sputnik-dao-contract) instance from the testnet factory.
+- Libraries: [`near-sdk`](https://crates.io/crates/near-sdk) 5.30 and [`near-contract-standards`](https://crates.io/crates/near-contract-standards) 5.30 (NEP-171 implementation). Tooling: `cargo-near`, `near-cli-rs`. The page uses [`near-api-js`](https://github.com/near/near-api-js) 4.0.4 for key handling and signing, and [NEAR Connect](https://github.com/hot-dao/near-selector) 0.12.0 (loaded from esm.sh) for wallets; the video recorder uses `playwright-core`. The arbiter DAO is an unmodified [SputnikDAO v2](https://github.com/near-daos/sputnik-dao-contract) instance from the testnet factory.
 - The CVE ids used in the demo are real identifiers for the named open-source components, used as sample data. "Acme" is a made-up maker.
 
 ## License

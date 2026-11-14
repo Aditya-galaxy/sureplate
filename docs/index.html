@@ -84,6 +84,14 @@
   .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #10261c; border: 1px solid var(--ok); color: var(--text);
     padding: 12px 18px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.5); z-index: 5; max-width: calc(100vw - 32px); }
   .toast.err { background: #2a1414; border-color: var(--bad); }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 22px; max-width: min(620px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog p { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  dialog label { display: block; font-size: 12px; color: var(--muted); margin-top: 12px; }
+  dialog input { display: block; width: 100%; margin-top: 4px; }
+  dialog .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  dialog .primary { padding: 9px 16px; }
+  dialog #keyerr { margin-top: 10px; min-height: 1.4em; color: var(--warn); }
   footer { color: var(--faint); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -130,6 +138,17 @@
 </div>
 
 <div id="toast" class="toast" hidden></div>
+<dialog id="keydlg">
+  <form id="keyform">
+    <h2>Sign in with a claim-only key</h2>
+    <p>Add an access key to your account that can do one thing: call <code>claim</code> on this contract. It cannot move your NFT or spend your NEAR beyond gas. The page checks that on chain before accepting it, and keeps it in this browser only.</p>
+    <pre id="kcmd"></pre>
+    <label>Account id<input id="kacct" placeholder="you.testnet" autocomplete="off" spellcheck="false" required></label>
+    <label>The key the command printed (SECRET KEYPAIR)<input id="ksecret" type="password" placeholder="ed25519:…" autocomplete="off" required></label>
+    <div id="keyerr" class="adv-meta"></div>
+    <div class="row"><button type="button" class="btn-ghost" id="kcancel">Cancel</button><button class="primary">Sign in</button></div>
+  </form>
+</dialog>
 <script src="vendor/near-api-js-4.0.4.min.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
@@ -168,29 +187,44 @@ async function view(method, args) {
   throw lastErr;
 }
 
-// ── wallet: sign-in grants this page a function-call key limited to `claim` on this contract ──
-let wallet = null, me = null, myBal = null;
+// ── signing in ──
+// Two ways, both end with the page able to send `claim` for the signed-in account:
+//  1. NEAR Connect: any supported testnet wallet; the wallet approves each transaction.
+//  2. A claim-only key: a function-call access key limited to `claim` on this contract, kept in
+//     localStorage. The page signs with it directly, so collecting is one click with no popup.
+//     The page refuses any key that is not limited that way.
+let me = null, myBal = null, mode = null, connector = null, keyWallet = null;
+const AUTH = 'sureplate_wallet_auth_key';
 async function initWallet() {
   try {
     const keyStore = new nearApi.keyStores.BrowserLocalStorageKeyStore();
     const conn = await nearApi.connect({ networkId: 'testnet', nodeUrl: RPCS[0], walletUrl: 'https://testnet.mynearwallet.com', keyStore });
-    wallet = new nearApi.WalletConnection(conn, 'sureplate');
-    me = wallet.isSignedIn() ? wallet.getAccountId() : null;
-  } catch (e) { wallet = null; }
+    keyWallet = new nearApi.WalletConnection(conn, 'sureplate');
+    if (keyWallet.isSignedIn()) { me = keyWallet.getAccountId(); mode = 'key'; }
+  } catch (e) { keyWallet = null; }
+  renderMe();
+  try {
+    const { NearConnector } = await import('https://esm.sh/@hot-labs/near-connect@0.12.0');
+    connector = new NearConnector({ network: 'testnet' });
+    connector.on('wallet:signIn', t => { if (mode !== 'key') { me = t.accounts[0].accountId; mode = 'wallet'; myBal = null; lastView = null; renderMe(); tick(); } });
+    connector.on('wallet:signOut', () => { if (mode === 'wallet') { me = null; mode = null; myBal = null; lastView = null; renderMe(); tick(); } });
+    if (!me) { const c = await connector.getConnectedWallet().catch(() => null); if (c?.accounts?.length) { me = c.accounts[0].accountId; mode = 'wallet'; lastView = null; } }
+  } catch (e) { connector = null; }
   renderMe();
 }
 function renderMe() {
-  if (!wallet) { $('me').innerHTML = ''; return; }
   $('me').innerHTML = me
     ? `<b>${esc(me)}</b><span class="bal" id="bal">${myBal === null ? '…' : myBal.toFixed(4) + ' NEAR'}</span><button class="btn-ghost" id="signout">Sign out</button>`
-    : `<button class="btn-ghost" id="signin">Sign in with NEAR wallet</button>`;
+    : `${connector ? '<button class="btn-ghost" id="signin">Connect wallet</button>' : ''}${keyWallet ? '<button class="btn-ghost" id="usekey">Use a claim-only key</button>' : ''}`;
+}
+async function rpc(method, params) {
+  const r = await fetch(RPCS[rpcIdx], { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+  return (await r.json()).result;
 }
 async function refreshBalance() {
   if (!me) return;
-  const r = await fetch(RPCS[rpcIdx], { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'query',
-    params: { request_type: 'view_account', finality: 'optimistic', account_id: me } }) });
-  const j = await r.json(); if (!j.result) return;
-  const b = Number(BigInt(j.result.amount) / 10n**20n) / 1e4;
+  const acc = await rpc('query', { request_type: 'view_account', finality: 'optimistic', account_id: me }); if (!acc) return;
+  const b = Number(BigInt(acc.amount) / 10n**20n) / 1e4;
   const rose = myBal !== null && b > myBal + 0.001;
   myBal = b; const el = $('bal'); if (!el) return;
   el.textContent = b.toFixed(4) + ' NEAR';
@@ -200,17 +234,41 @@ function toast(html, bad) {
   const t = $('toast'); t.innerHTML = html; t.className = 'toast' + (bad ? ' err' : ''); t.hidden = false;
   clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 9000);
 }
+async function useKey(account, secret) {
+  const kp = nearApi.KeyPair.fromString(secret), pk = kp.getPublicKey().toString();
+  const k = await rpc('query', { request_type: 'view_access_key', finality: 'optimistic', account_id: account, public_key: pk });
+  const fc = k?.permission?.FunctionCall;
+  if (!k || k.error) throw new Error('that key is not on ' + account);
+  if (!fc) throw new Error('that is a full-access key. This page only accepts a key limited to claim.');
+  if (fc.receiver_id !== CONTRACT || fc.method_names.length !== 1 || fc.method_names[0] !== 'claim')
+    throw new Error('that key is not limited to claim on ' + CONTRACT);
+  localStorage.setItem(AUTH, JSON.stringify({ accountId: account, allKeys: [pk] }));
+  localStorage.setItem(`near-api-js:keystore:${account}:testnet`, secret);
+  location.reload();
+}
+async function sendClaim(advisoryId) {
+  if (mode === 'key') {
+    const out = await keyWallet.account().functionCall({ contractId: CONTRACT, methodName: 'claim',
+      args: { token_id: token, advisory_id: advisoryId }, gas: 30000000000000n, attachedDeposit: 0n });
+    return out?.transaction?.hash || '';
+  }
+  const w = await connector.wallet();
+  const out = await w.signAndSendTransaction({ receiverId: CONTRACT, actions: [{ type: 'FunctionCall',
+    params: { methodName: 'claim', args: { token_id: token, advisory_id: advisoryId }, gas: '30000000000000', deposit: '0' } }] });
+  return out?.transaction?.hash || '';
+}
 document.addEventListener('click', async e => {
   if (e.target.id === 'signin') {
-    wallet.requestSignIn({ contractId: CONTRACT, methodNames: ['claim'], successUrl: location.href, failureUrl: location.href });
+    connector.connect().catch(err => toast('Wallet connection failed: ' + esc(String(err?.message || err).slice(0, 160)), true));
+  } else if (e.target.id === 'usekey') {
+    $('keydlg').showModal();
   } else if (e.target.id === 'signout') {
-    wallet.signOut(); me = null; myBal = null; lastView = null; renderMe(); tick();
+    if (mode === 'key') { keyWallet.signOut(); me = null; mode = null; myBal = null; lastView = null; renderMe(); tick(); }
+    else connector.disconnect().catch(() => {});
   } else if (e.target.dataset.claim !== undefined) {
     const btn = e.target; btn.disabled = true; btn.textContent = 'Collecting…';
     try {
-      const out = await wallet.account().functionCall({ contractId: CONTRACT, methodName: 'claim',
-        args: { token_id: token, advisory_id: Number(btn.dataset.claim) }, gas: 30000000000000n, attachedDeposit: 0n });
-      const hash = out?.transaction?.hash || out?.transaction_outcome?.id || '';
+      const hash = await sendClaim(Number(btn.dataset.claim));
       toast(`Collected <b>${esc(btn.dataset.amount)} NEAR</b> from the maker's bond. <a href="${EXPLORER}/txns/${encodeURIComponent(hash)}" target="_blank" rel="noopener">View transaction</a>`);
     } catch (err) {
       toast('Collect failed: ' + esc(String(err?.kind?.ExecutionError || err?.message || err).slice(0, 180)), true);
@@ -218,6 +276,13 @@ document.addEventListener('click', async e => {
     lastView = null; await tick();
   }
 });
+$('keyform').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('keyerr'); err.textContent = 'Checking the key on chain…';
+  try { await useKey($('kacct').value.trim(), $('ksecret').value.trim()); }
+  catch (x) { err.textContent = 'Not accepted: ' + String(x?.message || x).slice(0, 200); }
+});
+$('kcancel').addEventListener('click', () => $('keydlg').close());
 
 const VERDICT = {
   covered: 'Under support. No advisory is waiting on the maker, and the bond is locked in this passport.',
@@ -245,7 +310,7 @@ function advHtml(u, a) {
       note = `<div class="note">${late}You own this device, so the bond owes you <b>${near(a.claimable)} NEAR</b>.</div>` +
         `<button class="collect" data-claim="${v.id}" data-amount="${near(a.claimable)}">Collect ${near(a.claimable)} NEAR</button>`;
     } else {
-      note = `<div class="note">${late}Owner can collect <b>${near(a.claimable)} NEAR</b>. ${me ? `You are signed in as ${esc(me)}; only the current owner can collect.` : 'Sign in as the owner to collect with one click.'}</div>` +
+      note = `<div class="note">${late}Owner can collect <b>${near(a.claimable)} NEAR</b>. ${me ? `You are signed in as ${esc(me)}; only the current owner can collect.` : 'Sign in as the owner to collect here.'}</div>` +
         `<details><summary>or from the command line</summary>${cli}</details>`;
     }
   } else if (a.state === 'breach_claimed') {
@@ -352,6 +417,7 @@ $('f').addEventListener('submit', e => {
   history.replaceState(null, '', '?' + p.toString());
   tick();
 });
+$('kcmd').textContent = `near account add-key you.testnet grant-function-call-access --allowance '1 NEAR' --contract-account-id ${CONTRACT} --function-names claim autogenerate-new-keypair print-to-terminal network-config testnet sign-with-legacy-keychain send`;
 $('q').value = token;
 $('clink').textContent = CONTRACT; $('clink').href = `${EXPLORER}/address/${encodeURIComponent(CONTRACT)}`;
 initWallet().then(() => { tick(); setInterval(tick, 5000); });
