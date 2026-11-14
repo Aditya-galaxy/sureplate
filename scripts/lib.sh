@@ -10,7 +10,18 @@ bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 dim()  { printf '\033[2m%s\033[0m\n' "$*"; }
 step() { printf '\n\033[1;36m▸ %s\033[0m\n' "$*"; }
 
-_rpc() { curl -sS -m 30 "$RPC" -H 'Content-Type: application/json' -d "$1"; }
+# Public RPCs rate-limit now and then: retry, alternating between two endpoints.
+RPC_FALLBACK="${RPC_FALLBACK:-https://rpc.testnet.fastnear.com}"
+_rpc() {
+  local out url try
+  for try in 1 2 3 4 5 6; do
+    if (( try % 2 )); then url="$RPC"; else url="$RPC_FALLBACK"; fi
+    out=$(curl -sS -m 30 "$url" -H 'Content-Type: application/json' -d "$1" 2>/dev/null) || out=""
+    if printf '%s' "$out" | grep -q '"result"'; then printf '%s' "$out"; return 0; fi
+    sleep "$try"
+  done
+  printf '%s' "$out"
+}
 
 # view <method> <json-args>  → prints the JSON the contract returned
 view() {
