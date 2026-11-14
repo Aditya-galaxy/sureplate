@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Patchbond demo frame</title>
+<style>
+  html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: #07090b; color: #e8edf2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .bar { height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 18px; border-bottom: 1px solid #26303a; font-size: 14px; }
+  .bar b { font-size: 16px; } .bar span { color: #8b98a5; } .bar .r { margin-left: auto; font: 12px ui-monospace, Menlo, monospace; color: #ffb648; }
+  .main { display: flex; height: 676px; }
+  .term { width: 560px; padding: 12px 14px; font: 11.5px/1.55 ui-monospace, "SF Mono", Menlo, monospace; white-space: pre-wrap; overflow: hidden;
+    border-right: 1px solid #26303a; display: flex; flex-direction: column; justify-content: flex-end; word-break: break-word; }
+  .term div { min-height: 1.55em; flex-shrink: 0; }
+  .step { color: #6cd7ff; font-weight: 700; } .ok { color: #c9d4de; } .ok i { color: #3ddc97; font-style: normal; }
+  .dim { color: #6b7783; } .hl { color: #fff; font-weight: 700; background: rgba(61,220,151,.14); } .st { color: #ffd98a; }
+  iframe { border: 0; width: 900px; height: 845px; transform: scale(.8); transform-origin: 0 0; background: #0c0f12; }
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 110px; background: #0c0f12; }
+  .card h1 { font-size: 58px; margin: 0 0 18px; letter-spacing: -.03em; line-height: 1.08; }
+  .card p { font-size: 25px; color: #aab6c2; margin: 0 0 12px; line-height: 1.4; max-width: 980px; }
+  .card .em { color: #3ddc97; } .card small { font: 17px ui-monospace, Menlo, monospace; color: #6b7783; margin-top: 26px; }
+</style>
+<div id="root"></div>
+<script>
+const p = new URLSearchParams(location.search);
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const root = document.getElementById('root');
+const CARDS = {
+  intro: `<div class="card"><h1>Your smart camera has a known security hole.<br><span class="em">Who pays if the maker never fixes it?</span></h1>
+    <p>Patchbond: the maker locks a bond inside the device's NFT. Miss a patch deadline and whoever owns the device collects.</p>
+    <small>real transactions on NEAR testnet · contract patchbond.testnet · recording sped up</small></div>`,
+  outro: `<div class="card"><h1>Patch in time, or <span class="em">pay the owner.</span></h1>
+    <p>One NFT per device. The bond, the SBOM hash and the right to collect travel with it when it is resold.</p>
+    <small>github.com/Aditya-galaxy/patchbond · aditya-galaxy.github.io/patchbond · built at NEAR HACKATHON</small></div>`,
+};
+if (p.get('card')) { root.innerHTML = CARDS[p.get('card')]; }
+else {
+  root.innerHTML = `<div class="bar"><b>Patchbond</b><span>left: scripts/demo.sh on NEAR testnet · right: the device's passport page, live</span><span class="r">sped up</span></div>
+    <div class="main"><div class="term" id="t"></div><iframe src="../docs/index.html?token=${encodeURIComponent(p.get('token') || '')}"></iframe></div>`;
+  fetch(p.get('log') + '?' + Date.now()).then(r => r.text()).then(txt => {
+    const lines = txt.replace(/\x1b\[[0-9;]*m/g, '').split('\n')
+      .map(l => l.replace(/\s+https:\/\/testnet\.nearblocks\.io\/txns\/(\w{6})\w+/, '  tx $1…'))
+      .filter(l => !/^passport page:/.test(l));
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    document.getElementById('t').innerHTML = lines.slice(-30).map(l => {
+      let c = 'ok', h = esc(l);
+      if (l.startsWith('▸')) c = 'step';
+      else if (/balance:/.test(l)) c = 'hl';
+      else if (/^\s+status /.test(l) || /^\s+#\d+ /.test(l)) c = 'st';
+      else if (/…waiting|^\s{2}[A-Z][^✓]*:$|SBOM /.test(l)) c = 'dim';
+      h = h.replace('✓', '<i>✓</i>');
+      return `<div class="${c}">${h || ' '}</div>`;
+    }).join('');
+  });
+}
+</script>

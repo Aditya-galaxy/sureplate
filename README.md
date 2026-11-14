@@ -106,7 +106,7 @@ The script prints a transaction link for every step. What you see, in order:
 | Step | Do | See |
 | --- | --- | --- |
 | 1 | Maker opens a line with a 40s patch window | `create_line` succeeds |
-| 2 | Maker mints a unit for Alice with 2 NEAR attached | `status covered … bond 1.9902 NEAR` (2 NEAR minus storage) |
+| 2 | Maker mints a unit for Alice with 2 NEAR attached | `status covered … bond 1.99… NEAR` (2 NEAR minus about 0.01 NEAR of storage) |
 | 3 | Advisory A filed, maker patches in time | `#N CVE-2022-0778 [High] → patched`, bond untouched |
 | 4 | Alice transfers the NFT to Bob | owner becomes Bob |
 | 5 | Advisory B (critical) filed, maker does nothing | Bob's early claim is **refused**; after 40s status is `breach_claimable`; Alice's claim is **refused**; Bob's claim pays and his balance rises by about 0.995 NEAR; a second claim is **refused** |
@@ -181,6 +181,7 @@ docs/index.html        the passport page (single static file, no build step, ser
 scripts/demo.sh        full lifecycle on testnet
 scripts/seed.sh        seeds the showcase passports the page opens by default
 scripts/setup-accounts.sh, verify-sbom.sh, lib.sh
+video/                 how the demo video was recorded (real run + headless Chrome screenshots + ffmpeg)
 sbom/                  sample CycloneDX SBOM whose hash is locked into the demo passports
 ```
 

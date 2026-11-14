@@ -20,7 +20,7 @@ BOND="${BOND:-2 NEAR}"
 STAKE=100000000000000000000000  # 0.1 NEAR advisory stake
 PAGE="${PAGE:-https://aditya-galaxy.github.io/patchbond/}"
 
-RUN=$(date +%m%d%H%M%S)
+RUN="${RUN:-$(date +%m%d%H%M%S)}"
 LINE="cam-s2-$RUN"
 TOKEN="CAM-S2-$RUN"
 SBOM_FILE="sbom/acme-cam-s2-1.4.0.cdx.json"
