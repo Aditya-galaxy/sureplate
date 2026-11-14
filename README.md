@@ -12,6 +12,9 @@ Built at NEAR HACKATHON (Nov 2026). Tracks: **NFTs That Do Something**, **Real-W
 - Disputes are settled by a Sputnik DAO council vote: [`sureplate-cert.sputnik-v2.testnet`](https://testnet.nearblocks.io/address/sureplate-cert.sputnik-v2.testnet)
 - Demo video: a unit is resold while an advisory clock runs, the deadline is missed, and the **new** owner collects with one click. Narrated; every step is a real testnet transaction (listed under [Evidence](#evidence)).
 
+> Same author, separate and independent project in this hackathon (disclosed per rule Q-015):
+> [Payband](https://github.com/Aditya-galaxy/payband), private pay bands computed in a NEAR AI enclave.
+
 ## Real now, demonstrated only, next
 
 | | |
